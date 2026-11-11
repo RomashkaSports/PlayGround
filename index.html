@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#10131e">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23ff4d61'/%3E%3Ctext x='7' y='24' font-family='sans-serif' font-size='24' font-weight='900' fill='%2311141f'%3ER%3C/text%3E%3C/svg%3E">
+  <title>RIFT//RUMBLE — Swipe Fighter</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="cabinet">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">R</span><span>RIFT<span class="slash">//</span>RUMBLE</span></div>
+      <div class="top-meta"><span class="live-dot"></span> ARCADE MODE <i></i> FIGHT 01</div>
+      <button class="sound-button" id="soundBtn" aria-label="Toggle sound">♫ <span>SOUND ON</span></button>
+    </header>
+
+    <section class="game-shell" aria-label="Swipe fighter game">
+      <div class="arena-wrap">
+        <canvas id="game" width="480" height="270" aria-label="Game arena"></canvas>
+        <div class="hud">
+          <div class="fighter-hud player-hud">
+            <div class="fighter-label"><b>01</b><span>BYTE</span><small>THE RUNNER</small></div>
+            <div class="meter"><div class="health-fill player-health"></div><span>VITALS</span></div>
+            <div class="meter energy-meter"><div class="energy-fill player-energy"></div><span>FLOW</span></div>
+          </div>
+          <div class="fight-clock"><small>ROUND</small><b id="timer">60</b><span>∞</span></div>
+          <div class="fighter-hud enemy-hud">
+            <div class="fighter-label"><b>02</b><span>GLITCH</span><small>THE WALL</small></div>
+            <div class="meter"><div class="health-fill enemy-health"></div><span>VITALS</span></div>
+            <div class="meter energy-meter"><div class="energy-fill enemy-energy"></div><span>FLOW</span></div>
+          </div>
+        </div>
+        <div id="announce" class="announce"><span class="announce-kicker">THE UNDERGROUND CIRCUIT</span><strong>READY<br><em>TO RUMBLE?</em></strong><p>Swipe to move. Let go to strike.</p><button id="startBtn" class="start-button">ENTER THE RIFT <span>↗</span></button><div class="start-hint">NO BUTTONS. JUST INSTINCT.</div></div>
+        <div id="result" class="result hidden"><span class="announce-kicker">ROUND COMPLETE</span><strong id="resultTitle">K.O.</strong><p id="resultText">You own this arena.</p><button id="againBtn" class="start-button">RUN IT BACK <span>↗</span></button></div>
+        <div class="combo-badge" id="comboBadge">2 HIT COMBO</div>
+        <div class="swipe-tip" id="swipeTip"><span>↗</span> SWIPE ANYWHERE TO FIGHT</div>
+      </div>
+      <footer class="game-footer">
+        <div class="control-copy"><span class="control-icon">↗</span><div><b>SWIPE TO MOVE + HIT</b><small>Direction shapes your attack · longer swipe = harder hit</small></div></div>
+        <div class="move-legend"><span><i class="legend-dot red"></i> HORIZONTAL <b>JAB</b></span><span><i class="legend-dot gold"></i> UPWARD <b>LAUNCH</b></span><span><i class="legend-dot blue"></i> DOWNWARD <b>SLAM</b></span></div>
+        <div class="keyboard-hint">MOUSE / TOUCH <span>·</span> SPACE TO RESET</div>
+      </footer>
+    </section>
+    <div class="bottomline"><span>PIXEL PRECISION. RAW INTENTION.</span><span>EST. 2089 <i>◆</i> THE RIFT DISTRICT</span></div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
