@@ -8,7 +8,7 @@
   let running = false, ended = false, last = performance.now(), elapsed = 60, shake = 0, soundOn = true, audio;
   let player, enemy, particles = [], texts = [], trail = [], pointer = null, combo = 0, comboTimer = 0, aiWait = 1.1, bgTime = 0;
 
-  function fighter(x, side) { return { x, y: floor, side, hp: 100, energy: 55, vx: 0, vy: 0, facing: side === 'player' ? 1 : -1, state: 'idle', stateTime: 0, stun: 0, attack: null, hurtFlash: 0, anim: 0 }; }
+  function fighter(x, side) { return { x, y: floor, side, hp: 100, energy: 55, vx: 0, vy: 0, facing: side === 'player' ? 1 : -1, state: 'idle', stateTime: 0, stun: 0, attack: null, slideTime: 0, hurtFlash: 0, anim: 0 }; }
   function reset() { player = fighter(155, 'player'); enemy = fighter(326, 'enemy'); particles = []; texts = []; trail = []; combo = 0; comboTimer = 0; elapsed = 60; ended = false; running = true; aiWait = .9; shake = 0; ui.timer.textContent = '60'; ui.announce.classList.add('hidden'); ui.result.classList.add('hidden'); ui.tip.style.opacity = '1'; }
   function beep(freq = 180, duration = .08, type = 'square', volume = .035) { if (!soundOn) return; try { audio ||= new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); const o = audio.createOscillator(), g = audio.createGain(); o.type = type; o.frequency.setValueAtTime(freq, audio.currentTime); o.frequency.exponentialRampToValueAtTime(Math.max(50, freq * .58), audio.currentTime + duration); g.gain.setValueAtTime(volume, audio.currentTime); g.gain.exponentialRampToValueAtTime(.001, audio.currentTime + duration); o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime + duration); } catch (_) {} }
   function endGame(won) { if (ended) return; ended = true; running = false; ui.resultTitle.textContent = won ? 'K.O.' : 'WIPEOUT'; ui.resultText.textContent = won ? 'You own this arena. Nice work, Runner.' : 'Glitch took the round. Get back in there.'; ui.result.classList.remove('hidden'); beep(won ? 520 : 110, .28, 'sawtooth', .045); }
@@ -25,25 +25,40 @@
     beep(type === 'launch' ? 310 : type === 'slam' ? 125 : 220, .09 + len*.06, type === 'slam' ? 'triangle' : 'square', .025 + len*.014);
   }
   function playerSwipe(from, to) {
-    let dx = to.x - from.x, dy = to.y - from.y, dist = Math.hypot(dx,dy); if (dist < 18) return;
+    const dx = to.x - from.x, dy = to.y - from.y, dist = Math.hypot(dx,dy); if (dist < 18) return;
+    if (Math.abs(dy) > Math.abs(dx) * .76) {
+      if (dy < 0) {
+        if (player.y < floor || player.attack || player.stun > 0) return;
+        player.slideTime = 0; player.state = 'jump'; player.stateTime = 0; player.vy = -330;
+        if (Math.abs(dx) > 10) player.facing = Math.sign(dx);
+        player.vx += player.facing * 78; popText(player.x, player.y - 62, 'JUMP!', '#ffcf56'); beep(390,.11,'square',.03);
+      } else {
+        if (player.y < floor || player.attack || player.stun > 0) return;
+        player.slideTime = .62; player.state = 'slide'; player.stateTime = 0;
+        if (Math.abs(dx) > 10) player.facing = Math.sign(dx);
+        player.vx = player.facing * 165; popText(player.x, player.y - 36, 'SLIDE!', '#62e4d7'); beep(155,.13,'triangle',.03);
+      }
+      ui.tip.style.opacity = '0';
+      return;
+    }
     const power = Math.max(.18, Math.min(1, dist / 155));
-    const type = Math.abs(dy) > Math.abs(dx)*.76 ? (dy < 0 ? 'launch' : 'slam') : 'jab';
-    // A swipe also carries Byte a short distance in its direction, like a slingshot.
+    // A horizontal swipe carries Byte a short distance, like a slingshot.
     const dir = dx ? Math.sign(dx) : player.facing; player.x = clamp(player.x + dx*.20, 35, 445); player.facing = dir;
-    attack(player, enemy, type, dx, dy, power);
+    attack(player, enemy, 'jab', dx, dy, power);
     if (comboTimer > 0) combo++; else combo = 1; comboTimer = 1.05;
     if (combo >= 2) { ui.combo.textContent = `${combo} HIT COMBO`; ui.combo.classList.add('show'); setTimeout(()=>ui.combo.classList.remove('show'),650); }
     if (combo >= 3) { player.energy = Math.min(100, player.energy + 5); popText(player.x, player.y-65, 'FLOW +', '#61e4d7'); }
   }
   function updateFighter(f, dt) {
     f.anim += dt; f.stateTime += dt; f.stun = Math.max(0, f.stun-dt); f.hurtFlash = Math.max(0, f.hurtFlash-dt);
+    f.slideTime = Math.max(0, f.slideTime - dt);
     if (!f.attack && f !== enemy) f.energy = Math.min(100, f.energy + dt*3.5);
     if (f.attack) {
       const a = f.attack; a.time += dt;
       if (!a.hit && a.time > .11) {
         a.hit = true;
         const target = f === player ? enemy : player, reach = a.type === 'launch' ? 73 : 63;
-        if (Math.abs(target.x-f.x) < reach && Math.abs(target.y-f.y) < 70 && (target.x-f.x)*f.facing > -15) {
+        if (Math.abs(target.x-f.x) < reach && Math.abs(target.y-f.y) < 70 && !(target === player && (target.slideTime > 0 || (target.state === 'jump' && target.y < floor - 24))) && (target.x-f.x)*f.facing > -15) {
           const damage = Math.round((f === player ? 8 : 7) * a.power * (a.type === 'launch' ? 1.15 : 1));
           target.hp = Math.max(0, target.hp-damage); target.hurtFlash=.18; target.stun=.22; target.vx=f.facing*(a.type === 'slam'?175:115)*a.power; target.vy=a.type==='launch'?-155*a.power:a.type==='slam'?85: -35;
           burst(target.x,target.y-27,a.type==='launch'?'#ffcf56':f===player?'#ff5267':'#aa91ff',10); shake=4; popText(target.x,target.y-49,`-${damage}`,a.type==='launch'?'#ffcf56':'#fff');
@@ -55,7 +70,7 @@
     }
     f.vx *= Math.pow(.025,dt); f.vy += 500*dt; f.x += f.vx*dt; f.y += f.vy*dt;
     if (f.y > floor) { f.y=floor; f.vy=0; } f.x=clamp(f.x,22,458);
-    if (!f.attack && f.stun<=0) f.state='idle';
+    if (!f.attack && f.stun<=0) f.state = f.slideTime > 0 ? 'slide' : f.y < floor ? 'jump' : 'idle';
   }
   function update(dt) {
     bgTime += dt; if (running) { elapsed -= dt; if (elapsed <= 0) { elapsed=0; ui.timer.textContent='00'; endGame(player.hp>=enemy.hp); } else ui.timer.textContent=String(Math.ceil(elapsed)).padStart(2,'0');
@@ -101,6 +116,8 @@
     // shadow
     ctx.globalAlpha=.28;rect(x-17,by+2,35,4,'#0b0e16');ctx.globalAlpha=1;
     if(f.hurtFlash>0 && Math.floor(f.hurtFlash*45)%2===0) return;
+    const crouching = f === player && f.slideTime > 0;
+    if(crouching){ctx.save();ctx.translate(0,by);ctx.scale(1,.58);ctx.translate(0,-by);}
     if(f.side==='player'){
       const c='#f04e69', dark='#9f304f', skin='#f4bb91', glow='#62e4d7';
       // trailing scarf
@@ -125,6 +142,7 @@
       rect(x-10,by-15,8,12,'#393653');rect(x+2,by-15,8,12,'#393653');rect(x-12,by-4,11,4,'#c6b6d5');rect(x+1,by-4,12,4,'#c6b6d5');
       if(attacking){rect(x+face*12,by-32,face*11,7,skin);rect(x+face*19,by-34,face*8,9,'#ddd0ec');}
     }
+    if(crouching)ctx.restore();
     // aura when striking
     if(attacking){let col=f.side==='player'?'#68eee0':'#b29cff';ctx.globalAlpha=.6;rect(x+face*24,by-43,3,3,col);rect(x+face*30,by-36,2,2,col);ctx.globalAlpha=1;}
   }
